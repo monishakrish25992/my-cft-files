@@ -1,31 +1,44 @@
-
-
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Best Practice SNS Topic",
+  "AWSTemplateFormatVersion" : "2010-09-09",
+ 
+  "Description" : "AWS CloudFormation Sample Template SQS.",
 
-  
-  
-  "Resources": {
-    "MyTopic":{
-  "Type" : "AWS::SNS::Topic",
-  "Properties" : {
-      "TopicName" : "test-topic"
-    }
+    "Parameters" : {
+      "VisibilityTimeOut":{
+        "Description":"Queue is unavailable in once a message is delivered from the Queue",
+        "Type":"Number",
+        "MinValue":"0",
+        "MaxValue":"600",
+        "Default":"300"
 
-  }
+      }
+
+    },
+    
+  "Resources" : {
+    "MyQueue1" : {
+      "Type" : "AWS::SQS::Queue",
+      "Properties" : {
+         "QueueName" : "test-queue",
+         "VisibilityTimeout":{"Ref":"VisibilityTimeOut"},
+         
+      }
+      }
 
   },
+  "Outputs" : {
     
-  "Outputs": {
-    "TopicARN" : {
-      "Description" : "ARN of newly created SNS Topic",
-      "Value" : { "Ref" : "MyTopic" }
+    "QueueURL" : {
+      "Description" : "URL of newly created SQS Queue",
+      "Value" : { "Ref" : "MyQueue1" }
+    },
+    "QueueARN" : {
+      "Description" : "ARN of newly created SQS Queue",
+      "Value" : { "Fn::GetAtt" : ["MyQueue1", "Arn"]}
+    },
+    "QueueName" : {
+      "Description" : "Name newly created SQS Queue",
+      "Value" : { "Fn::GetAtt" : ["MyQueue1", "QueueName"]}
     }
-    
   }
 }
-
-
-
-
