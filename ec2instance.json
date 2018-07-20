@@ -1,0 +1,15 @@
+{
+   "AWSTemplateFormatVersion":"2010-09-09",
+   "Description":"AWS CloudFormation Sample Template Ec2 Instance ",
+   "Resources":{
+      "MyEC2Instance":{
+         "Type":"AWS::EC2::Instance",
+         "Properties":{
+            "InstanceType":"t2.micro",
+            "ImageId":"ami-e0ba5c83",
+            "KeyName":"my-key"
+         }
+      },
+      
+   }
+}
