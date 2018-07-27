@@ -57,8 +57,11 @@
                      [
                         "#!/bin/bash -xe",
                         "sudo yum update -y",
+			"echo sudo yum update -y",
                         "sudo yum install httpd -y",
-                        "sudo /etc/init.d/httpd start",
+			"echo sudo install httpd -y",
+                        "sudo service httpd start",
+			"echo sudo service httpd start",
                         "echo \"<html><body><h1>Awesome !!!</h1>\" > /var/www/html/index.html",
                         "echo \"</body></html>\" >> /var/www/html/index.html"
                      ]
