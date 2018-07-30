@@ -1,16 +1,43 @@
 {
    "AWSTemplateFormatVersion":"2010-09-09",
-   "Description":"Attach S3 full access IAM Role to an EC2",
+   "Description":"Attach S3 IAM Role to an EC2instance linux login and install apache server then download s3 zip files to ec2 instance and unzip a file after start a apache server to run the file ",
    "Resources":{
       "MyEC2Instance":{
          "Type":"AWS::EC2::Instance",
          "Properties":{
             "InstanceType":"t2.micro",
-            "ImageId":"ami-4aa04129",
+            "ImageId":"ami-e0ba5c83",
             "IamInstanceProfile":{
                "Ref":"ListS3BucketsInstanceProfile"
             },
-            "KeyName":"my-key"
+            "KeyName":"my-key",
+            "UserData":{
+               "Fn::Base64":{
+                  "Fn::Join":[
+                     "\n",
+                     [
+                  
+                        "#!/bin/bash -xe",
+               "echo update apache server",
+                        "sudo yum update -y",
+                  "echo install apache server",
+                  "sudo yum install httpd -y",
+               "echo make a directory",
+                  "mkdir website",
+               "echo move to directory",
+                  "cd website",
+               "echo download s3 bucket file copy to EC2 Instance",
+                        "aws s3 cp s3://s3-website-sample/website.zip /home/ec2-user/website/",
+                    "echo unzip a Ec2 directory file",
+                        "unzip /home/ec2-user/website/website.zip -d /var/www/html/",
+               "echo apche server start/restart",
+                        "sudo service httpd restart"
+                        
+                        
+                     ]
+                  ]
+               }
+            }
          }
       },
       "ListS3BucketsInstanceProfile":{
@@ -33,7 +60,7 @@
                   {
                      "Effect":"Allow",
                      "Action":[
-                        "s3:List*"
+                        "s3:Get*"
                      ],
                      "Resource":"*"
                   }
@@ -68,5 +95,25 @@
             "Path":"/"
          }
       }
+   },
+   "Outputs":{
+      "URL":{
+         "Description":"URL of the sample website",
+         "Value":{
+            "Fn::Join":[
+               "",
+               [
+                  "http://",
+                  {
+                     "Fn::GetAtt":[
+                        "MyEC2Instance",
+                        "PublicDnsName"
+                     ]
+                  }
+               ]
+            ]
+         }
+      }
    }
 }
+
