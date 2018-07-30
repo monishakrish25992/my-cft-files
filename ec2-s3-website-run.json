@@ -1,95 +1,72 @@
 {
    "AWSTemplateFormatVersion":"2010-09-09",
-   "Description":"Installing Apache web server on Amazon Linux EC2 with UserData",
-   "Parameters":{
-      "KeyPair":{
-         "Description":"Name of the keypair to use for SSH access",
-         "Type":"String"
-      }
-   },
+   "Description":"Attach S3 full access IAM Role to an EC2",
    "Resources":{
-      "WebServerSecurityGroup":{
-         "Type":"AWS::EC2::SecurityGroup",
-         "Properties":{
-            "GroupDescription":"Enable HTTP ingress",
-            "VpcId":"vpc-e6bd1682",
-            "SecurityGroupIngress":[
-               {
-                  "IpProtocol":"tcp",
-                  "FromPort":"80",
-                  "ToPort":"80",
-                  "CidrIp":"0.0.0.0/0"
-               },
-               {
-                  "IpProtocol":"tcp",
-                  "FromPort":"22",
-                  "ToPort":"22",
-                  "CidrIp":"0.0.0.0/0"
-               }
-            ]
-         }
-      },
       "MyEC2Instance":{
          "Type":"AWS::EC2::Instance",
          "Properties":{
             "InstanceType":"t2.micro",
-            "ImageId":"ami-e0ba5c83",
-            "NetworkInterfaces":[
-               {
-                  "GroupSet":[
-                     {
-                        "Ref":"WebServerSecurityGroup"
-                     }
-                  ],
-                  "AssociatePublicIpAddress":"true",
-                  "DeviceIndex":"0",
-                  "DeleteOnTermination":"true",
-                  "SubnetId":"subnet-a28710fa"
-               }
-            ],
-            "KeyName":{
-               "Ref":"KeyPair"
+            "ImageId":"ami-4aa04129",
+            "IamInstanceProfile":{
+               "Ref":"ListS3BucketsInstanceProfile"
             },
-            "UserData":{
-               "Fn::Base64":{
-                  "Fn::Join":[
-                     "\n",
-                     [
-                        "#!/bin/bash -xe",
-            "echo update apache server",
-                        "sudo yum update -y",
-			"echo install apache server",
-                        "sudo yum install httpd -y",
-			"echo apche server start",
-                        "sudo service httpd start",
-			
-                        "echo \"<html><body><h1>Awesome !!!</h1>\" > /var/www/html/index.html",
-                        "echo \"</body></html>\" >> /var/www/html/index.html"
-                     ]
-                  ]
-               }
-            }
+            "KeyName":"my-key"
          }
-      }
-   },
-   "Outputs":{
-      "URL":{
-         "Description":"URL of the sample website",
-         "Value":{
-            "Fn::Join":[
-               "",
-               [
-                  "http://",
+      },
+      "ListS3BucketsInstanceProfile":{
+         "Type":"AWS::IAM::InstanceProfile",
+         "Properties":{
+            "Path":"/",
+            "Roles":[
+               {
+                  "Ref":"ListS3BucketsRole"
+               }
+            ]
+         }
+      },
+      "ListS3BucketsPolicy":{
+         "Type":"AWS::IAM::Policy",
+         "Properties":{
+            "PolicyName":"ListS3BucketsPolicy",
+            "PolicyDocument":{
+               "Statement":[
                   {
-                     "Fn::GetAtt":[
-                        "MyEC2Instance",
-                        "PublicDnsName"
+                     "Effect":"Allow",
+                     "Action":[
+                        "s3:List*"
+                     ],
+                     "Resource":"*"
+                  }
+               ]
+            },
+            "Roles":[
+               {
+                  "Ref":"ListS3BucketsRole"
+               }
+            ]
+         }
+      },
+      "ListS3BucketsRole":{
+         "Type":"AWS::IAM::Role",
+         "Properties":{
+            "AssumeRolePolicyDocument":{
+               "Version":"2012-10-17",
+               "Statement":[
+                  {
+                     "Effect":"Allow",
+                     "Principal":{
+                        "Service":[
+                           "ec2.amazonaws.com"
+                        ]
+                     },
+                     "Action":[
+                        "sts:AssumeRole"
                      ]
                   }
                ]
-            ]
+            },
+            "Path":"/"
          }
       }
    }
 }
-
