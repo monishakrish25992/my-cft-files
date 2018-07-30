@@ -1,62 +1,99 @@
 {
-   "AWSTemplateFormatVersion":"2010-09-09",
-   "Description":"AWS CloudFormation Sample Template SQS.",
-   "Parameters":{
-      "VisibilityTimeOut":{
-         "Description":"Queue is unavailable in once a message is delivered from the Queue",
-         "Type":"Number",
-         "MinValue":"0",
-         "MaxValue":"600",
-         "Default":"300"
-      }
-   },
-   "Resources":{
-      "MyQueue1":{
-         "Type":"AWS::SQS::Queue",
-         "Properties":{
-            "QueueName":"test-queue",
-            "VisibilityTimeout":{
-               "Ref":"VisibilityTimeOut"
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS CloudFormation Sample Template S3 bucket to SNS  notifiction sends to email and a message into SQS.",
+
+    "Resources": {
+
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": "Queue-notification"
             }
-         }
-      },
-      "MyTopic":{
-         "Type":"AWS::SNS::Topic",
-         "Properties":{
-            "TopicName":"test-topic"
-         }
-      }
-   },
-   "Outputs":{
-      "QueueURL":{
-         "Description":"URL of newly created SQS Queue",
-         "Value":{
-            "Ref":"MyQueue1"
-         }
-      },
-      "QueueARN":{
-         "Description":"ARN of newly created SQS Queue",
-         "Value":{
-            "Fn::GetAtt":[
-               "MyQueue1",
-               "Arn"
-            ]
-         }
-      },
-      "QueueName":{
-         "Description":"Name newly created SQS Queue",
-         "Value":{
-            "Fn::GetAtt":[
-               "MyQueue1",
-               "QueueName"
-            ]
-         }
-      },
-      "TopicARN":{
-         "Description":"ARN of newly created SNS Topic",
-         "Value":{
-            "Ref":"MyTopic"
-         }
-      }
-   }
+        },
+
+        "QueuePolicy": {
+            "Type": "AWS::SQS::QueuePolicy",
+            "Properties": {
+                "Queues": [{"Ref": "Queue"}],
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Sid": "Allow-SNS-Topic-to-SendMessage-to-SQS-Queue",
+                            "Effect": "Allow",
+                            "Principal": { "AWS": "*" },
+                            "Action": "sqs:SendMessage",
+                            "Resource": {"Fn::GetAtt": ["Queue", "Arn"]},
+                            "Condition": {
+                                "ArnEquals": {
+                                    "aws:SourceArn": {"Ref": "Topic"}
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+
+        "Topic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "Subscription": [
+                    {
+                        "Endpoint": "monisha25992@gmail.com",
+                        "Protocol": "email"
+                    },
+                    {
+                        "Endpoint": {"Fn::GetAtt": ["Queue", "Arn"]},
+                        "Protocol": "sqs"
+                    }
+                ]
+            }
+        },
+
+        "TopicPolicy": {
+            "Type" : "AWS::SNS::TopicPolicy",
+            "Properties": {
+                "Topics": [{"Ref": "Topic"}],
+                "PolicyDocument": {
+                    "Version": "2008-10-17",
+                    "Id": "example-ID",
+                    "Statement": [
+                        {
+                            "Sid": "topic-sid",
+                            "Effect": "Allow",
+                            "Principal": {"Service": "s3.amazonaws.com"},
+                            "Action": ["SNS:Publish"],
+                            "Resource": {"Ref": "Topic"},
+                            "Condition": {
+                                "ArnLike": {          
+                                    "aws:SourceArn": "arn:aws:s3:*:*:s3-sns-email-sqs-notification"    
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+
+        "Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "AccessControl": "BucketOwnerFullControl",
+                "BucketName": "s3-sns-email-sqs-notification",
+                "NotificationConfiguration": {
+                    "TopicConfigurations": [
+                        {
+                            "Event": "s3:ObjectCreated:*",
+                            "Topic": {
+                                "Ref": "Topic"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+
+
+    }
 }
