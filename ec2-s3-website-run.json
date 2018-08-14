@@ -1,6 +1,12 @@
 {
    "AWSTemplateFormatVersion":"2010-09-09",
-   "Description":"Attach S3 IAM Role to an EC2instance linux login and install apache server then download s3 zip files to ec2 instance and unzip a file after start a apache server to run the file ",
+   "Description":"Attach IAM Role to an EC2",
+   "Parameters":{
+      "KeyPair":{
+         "Description":"Name of the keypair to use for SSH access",
+         "Type":"String"
+      }
+   },
    "Resources":{
       "MyEC2Instance":{
          "Type":"AWS::EC2::Instance",
@@ -8,53 +14,84 @@
             "InstanceType":"t2.micro",
             "ImageId":"ami-e0ba5c83",
             "IamInstanceProfile":{
-               "Ref":"ListS3BucketsInstanceProfile"
+               "Ref":"InstanceProfile"
             },
-            "KeyName":"my-key",
+            "NetworkInterfaces":[
+               {
+                  "GroupSet":[
+                     {
+                        "Ref":"WebServerSecurityGroup"
+                     }
+                  ],
+                  "AssociatePublicIpAddress":"true",
+                  "DeviceIndex":"0",
+                  "DeleteOnTermination":"true",
+                  "SubnetId":"subnet-a28710fa"
+               }
+            ],
+            "KeyName":{
+               "Ref":"KeyPair"
+            },
             "UserData":{
                "Fn::Base64":{
                   "Fn::Join":[
                      "\n",
                      [
-                  
                         "#!/bin/bash -xe",
-               "echo update apache server",
                         "sudo yum update -y",
-                  "echo install apache server",
-                  "sudo yum install httpd -y",
-               "echo make a directory",
-                  "mkdir website",
-               "echo move to directory",
-                  "cd website",
-               "echo download s3 bucket file copy to EC2 Instance",
-                        "aws s3 cp s3://s3-website-sample/website.zip /home/ec2-user/website/",
-                    "echo unzip a Ec2 directory file",
-                        "unzip /home/ec2-user/website/website.zip -d /var/www/html/",
-               "echo apche server start/restart",
-                        "sudo service httpd restart"
-                        
-                        
+                        "echo sudo yum update -y",
+                        "sudo yum install httpd -y",
+                        "echo sudo install httpd -y",
+                        "sudo service httpd start",
+                        "echo sudo service httpd start",
+                        "echo make a directory",
+                        "mkdir prgm",
+                        "echo move to directory",
+                        "cd prgm",
+                        "echo download s3 bucket file copy to EC2 Instance",
+                        "aws s3 cp s3://s3-to-sns-emailsqs/index.html /var/www/html/index.html"
                      ]
                   ]
                }
             }
          }
       },
-      "ListS3BucketsInstanceProfile":{
+      "WebServerSecurityGroup":{
+         "Type":"AWS::EC2::SecurityGroup",
+         "Properties":{
+            "GroupDescription":"Enable HTTP ingress",
+            "VpcId":"vpc-e6bd1682",
+            "SecurityGroupIngress":[
+               {
+                  "IpProtocol":"tcp",
+                  "FromPort":"80",
+                  "ToPort":"80",
+                  "CidrIp":"0.0.0.0/0"
+               },
+               {
+                  "IpProtocol":"tcp",
+                  "FromPort":"22",
+                  "ToPort":"22",
+                  "CidrIp":"0.0.0.0/0"
+               }
+            ]
+         }
+      },
+      "InstanceProfile":{
          "Type":"AWS::IAM::InstanceProfile",
          "Properties":{
             "Path":"/",
             "Roles":[
                {
-                  "Ref":"ListS3BucketsRole"
+                  "Ref":"InstanceRole"
                }
             ]
          }
       },
-      "ListS3BucketsPolicy":{
+      "Policy":{
          "Type":"AWS::IAM::Policy",
          "Properties":{
-            "PolicyName":"ListS3BucketsPolicy",
+            "PolicyName":"Policy",
             "PolicyDocument":{
                "Statement":[
                   {
@@ -68,12 +105,12 @@
             },
             "Roles":[
                {
-                  "Ref":"ListS3BucketsRole"
+                  "Ref":"InstanceRole"
                }
             ]
          }
       },
-      "ListS3BucketsRole":{
+      "InstanceRole":{
          "Type":"AWS::IAM::Role",
          "Properties":{
             "AssumeRolePolicyDocument":{
@@ -116,4 +153,3 @@
       }
    }
 }
-
